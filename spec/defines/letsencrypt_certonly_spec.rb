@@ -108,6 +108,15 @@ describe 'letsencrypt::certonly' do
 
         it { is_expected.to contain_cron('letsencrypt renew cron foo.example.com').with_environment(['VENV_PATH=/opt/letsencrypt/.venv', 'FOO=bar', 'FIZZ=buzz']) }
       end
+
+      context 'with manage cron and disable_cron_emails' do
+        let(:title) { 'foo.example.com' }
+        let(:params) do
+          { manage_cron: true,
+            disable_cron_emails: true }
+        end
+        it { is_expected.to contain_cron('letsencrypt renew cron foo.example.com').with_command 'letsencrypt --text --agree-tos certonly -a standalone --keep-until-expiring -d foo.example.com > /dev/null 2>&1' }
+      end
     end
   end
 end

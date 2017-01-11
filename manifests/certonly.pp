@@ -38,6 +38,7 @@ define letsencrypt::certonly (
   $additional_args      = undef,
   $environment          = [],
   $manage_cron          = false,
+  $disable_cron_emails  = false,
   $cron_before_command  = undef,
   $cron_success_command = undef,
 ) {
@@ -54,6 +55,7 @@ define letsencrypt::certonly (
   }
   validate_array($environment)
   validate_bool($manage_cron)
+  validate_bool($disable_cron_emails)
 
   $command_start = "${letsencrypt_command} --text --agree-tos certonly -a ${plugin} "
   $command_domains = $plugin ? {
@@ -85,10 +87,15 @@ define letsencrypt::certonly (
     } else {
       $cron_cmd = $renewcommand
     }
+    if $disable_cron_emails {
+      $cron_command = "${cron_cmd} > /dev/null 2>&1"
+    } else {
+      $cron_command = $cron_cmd
+    }
     $cron_hour = fqdn_rand(24, $title) # 0 - 23, seed is title plus fqdn
     $cron_minute = fqdn_rand(60, $title ) # 0 - 59, seed is title plus fqdn
     cron { "letsencrypt renew cron ${title}":
-      command     => $cron_cmd,
+      command     => $cron_command,
       environment => concat([ $venv_path_var ], $environment),
       user        => root,
       hour        => $cron_hour,
