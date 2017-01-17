@@ -77,25 +77,25 @@ define letsencrypt::certonly (
 
   if $manage_cron {
     $maincommand = "${command_start}--keep-until-expiring ${command_domains}${command_end}"
-    if $cron_before_command {
-      $renewcommand = "(${cron_before_command}) && ${maincommand}"
+    if $disable_cron_emails {
+      $croncommand = "${maincommand} > /dev/null 2>&1"
     } else {
-      $renewcommand = $maincommand
+      $croncommand = $maincommand
+    }
+    if $cron_before_command {
+      $renewcommand = "(${cron_before_command}) && ${croncommand}"
+    } else {
+      $renewcommand = $croncommand
     }
     if $cron_success_command {
       $cron_cmd = "${renewcommand} && (${cron_success_command})"
     } else {
       $cron_cmd = $renewcommand
     }
-    if $disable_cron_emails {
-      $cron_command = "${cron_cmd} > /dev/null 2>&1"
-    } else {
-      $cron_command = $cron_cmd
-    }
     $cron_hour = fqdn_rand(24, $title) # 0 - 23, seed is title plus fqdn
     $cron_minute = fqdn_rand(60, $title ) # 0 - 59, seed is title plus fqdn
     cron { "letsencrypt renew cron ${title}":
-      command     => $cron_command,
+      command     => $cron_cmd,
       environment => concat([ $venv_path_var ], $environment),
       user        => root,
       hour        => $cron_hour,
